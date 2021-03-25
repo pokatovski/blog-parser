@@ -47,3 +47,19 @@ func ProcessChannel(ch string, isNamed bool) (model.ZenChannel, error) {
 
 	return channelData, nil
 }
+
+func GetChannel(splitted []string) (string, bool, error) {
+	//zen channels has two types: named and unnamed(https://zen.yandex.ru/channel_name or https://zen.yandex.ru/id/1)
+	var isNamed bool
+	var ch string
+	if len(splitted) == 4 {
+		isNamed = true
+		ch = splitted[3]
+	} else if len(splitted) == 5 {
+		ch = splitted[4]
+	} else {
+		err := errors.New("bad path")
+		return ch, isNamed, err
+	}
+	return ch, isNamed, nil
+}

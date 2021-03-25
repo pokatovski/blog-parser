@@ -8,4 +8,12 @@
     <link type="text/css" href="/web/static/style.css" rel="stylesheet">
 </head>
 <body>
+<a href="/">
+    <button type="button" class="button">Main page</button>
+</a>
+<form id="form" action="/parse">
+    Enter url for parse:<input type="text" id="channel" name="url" required="required" size="40">
+    <input type="submit" value="Go" class="button">
+</form>
+
 {{ end }}

@@ -10,8 +10,7 @@ func main() {
 	fs := http.FileServer(http.Dir("./web/static"))
 	http.Handle("/web/static/", http.StripPrefix("/web/static/", fs))
 	http.HandleFunc("/", handler.Index)
-	http.HandleFunc("/channel", handler.Channel)
-	http.HandleFunc("/detail", handler.Detail)
+	http.HandleFunc("/parse", handler.Parse)
 
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {

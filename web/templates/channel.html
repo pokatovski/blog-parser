@@ -4,9 +4,9 @@
 
         {{range .Items}}
         <section>
-            <a href="/detail?page={{.Link}}">{{.Title}}</a>
+            <a href="/parse?url={{.Link}}">{{.Title}}</a>
             <div> published:{{.CreationTime}}</div>
-            <a href={{.Link}}><img src={{.Image}}></a>
+            <a href="/parse?url={{.Link}}"><img src={{.Image}}></a>
         </section>
 
         {{end}}
