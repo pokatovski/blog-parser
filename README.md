@@ -1,4 +1,4 @@
-# Service for parsing zen and pulse
+# Service for parsing and readability any blog
 
 # Start
 ```
