@@ -14,7 +14,8 @@ func main() {
 	port := os.Getenv("PORT")
 
 	if port == "" {
-		log.Fatal("$PORT must be set")
+		log.Println("$PORT is empty, set default to :8080")
+		port = "8080"
 	}
 	fs := http.FileServer(http.Dir("./web/static"))
 	http.Handle("/web/static/", http.StripPrefix("/web/static/", fs))
