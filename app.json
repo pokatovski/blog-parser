@@ -1,0 +1,11 @@
+{
+  "name": "blog parser",
+  "description": "Go parse test",
+  "keywords": [
+    "go",
+    "sample",
+    "example"
+  ],
+  "website": "github.com/pokatovski/blog-parser",
+  "repository": "github.com/pokatovski/blog-parser"
+}
