@@ -2,19 +2,23 @@ package model
 
 import "html/template"
 
-type ZenItem struct {
+type Item struct {
 	Title        string `json:"title"`
 	Image        string `json:"image"`
 	Link         string `json:"link"`
 	CreationTime string `json:"creation_time"`
 }
 
-type ZenChannel struct {
-	Items []ZenItem `json:"items"`
+type More struct {
+	Link string `json:"link"`
+}
+type Channel struct {
+	Items []Item `json:"items"`
+	More  More   `json:"more"`
 }
 
 type ChannelData struct {
-	Items []ZenItem
+	Items []Item
 }
 
 type PageData struct {
