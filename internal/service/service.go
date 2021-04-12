@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla/feeds"
 	"github.com/pokatovski/blog-parser/internal/model"
 	"github.com/recoilme/clean"
+	"html"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -126,7 +127,7 @@ func MakeRss(data model.ChannelData, chUrl, host string) (string, error) {
 	start := time.Now()
 	created := time.Now()
 	var sortedFeed []*feeds.Item
-	feedLink := fmt.Sprintf("%s/parse?url=%s", host, chUrl)
+	feedLink := fmt.Sprintf("https://%s/parse?url=%s", host, chUrl)
 	title := data.Items[0].DomainTitle
 	feed := &feeds.Feed{
 		Title:       title,
@@ -171,7 +172,7 @@ func makeLink(url, host string) (string, error) {
 		err := errors.New(fmt.Sprintf("bad url for splitting:%s", url))
 		return "", err
 	}
-	resLink := fmt.Sprintf("%s/parse?url=%s", host, splitUrl[0])
+	resLink := fmt.Sprintf("https://%s/parse?url=%s", host, splitUrl[0])
 	return resLink, nil
 }
 
@@ -194,11 +195,10 @@ func process(item model.Item, jobs <-chan struct{}, host string, wg *sync.WaitGr
 	}
 	created := time.Now()
 	newItem := &feeds.Item{
-		Id:          item.Id,
 		Title:       item.Title,
 		Link:        &feeds.Link{Href: link},
 		Description: item.Text,
-		Content:     result,
+		Content:     html.UnescapeString(result),
 		Created:     created,
 	}
 
