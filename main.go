@@ -21,6 +21,8 @@ func main() {
 	http.Handle("/web/static/", http.StripPrefix("/web/static/", fs))
 	http.HandleFunc("/", handler.Index)
 	http.HandleFunc("/parse", handler.Parse)
+	http.HandleFunc("/rss", handler.Rss)
+	http.HandleFunc("/rss-single", handler.RssSingle)
 
 	http.ListenAndServe(":"+port, nil)
 }

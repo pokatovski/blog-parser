@@ -4,16 +4,23 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/gorilla/feeds"
+	"github.com/pokatovski/blog-parser/internal/model"
+	"github.com/recoilme/clean"
 	"io/ioutil"
 	"net/http"
 	"strconv"
-
-	"github.com/pokatovski/blog-parser/internal/model"
+	"strings"
+	"sync"
+	"time"
 )
 
 const zenApi = "https://zen.yandex.ru/api/v3/launcher/"
 const articleCount = 100
 const articleOffset = 20
+const maxGoroutines = 3
+
+var feedItems = make(map[string]*feeds.Item)
 
 func ProcessChannel(ch string, isNamed bool) (model.ChannelData, error) {
 	var url string
@@ -113,4 +120,93 @@ func loadMore(url string) (model.Channel, error) {
 		return channel, err
 	}
 	return channel, nil
+}
+
+func MakeRss(data model.ChannelData, chUrl, host string) (string, error) {
+	start := time.Now()
+	created := time.Now()
+	var sortedFeed []*feeds.Item
+	feedLink := fmt.Sprintf("%s/parse?url=%s", host, chUrl)
+	title := data.Items[0].DomainTitle
+	feed := &feeds.Feed{
+		Title:       title,
+		Link:        &feeds.Link{Href: feedLink},
+		Description: title,
+		Created:     created,
+	}
+
+	maxGoroutines := maxGoroutines
+	jobs := make(chan struct{}, maxGoroutines)
+	wg := sync.WaitGroup{}
+	for _, item := range data.Items {
+		wg.Add(1)
+		jobs <- struct{}{}
+		go process(item, jobs, host, &wg)
+		durationClear := time.Since(start).Seconds()
+		fmt.Println("process clear duration", durationClear)
+	}
+	wg.Wait()
+	close(jobs)
+	duration := time.Since(start).Seconds()
+	fmt.Println("process items duration", duration)
+	for _, dataItem := range data.Items {
+		if v, ok := feedItems[dataItem.Id]; ok {
+			sortedFeed = append(sortedFeed, v)
+		}
+	}
+
+	feed.Items = sortedFeed
+
+	rss, err := feed.ToRss()
+	if err != nil {
+		return "", nil
+	}
+
+	return rss, nil
+}
+
+func makeLink(url, host string) (string, error) {
+	splitUrl := strings.Split(url, "?")
+	if len(splitUrl) == 1 {
+		err := errors.New(fmt.Sprintf("bad url for splitting:%s", url))
+		return "", err
+	}
+	resLink := fmt.Sprintf("%s/parse?url=%s", host, splitUrl[0])
+	return resLink, nil
+}
+
+func process(item model.Item, jobs <-chan struct{}, host string, wg *sync.WaitGroup) {
+	result, err := clean.URI(item.Link, false)
+	defer wg.Done()
+	if err != nil {
+		fmt.Println("failed for get response from url: ", item.Link)
+		fmt.Println("failed for get response from url err: ", err.Error())
+		<-jobs
+		return
+	}
+	emptyImg := `<img src=""/>`
+	result = strings.ReplaceAll(result, emptyImg, "")
+	link, err := makeLink(item.Link, host)
+	if err != nil {
+		fmt.Println("err make link ", err)
+		<-jobs
+		return
+	}
+	created := time.Now()
+	newItem := &feeds.Item{
+		Id:          item.Id,
+		Title:       item.Title,
+		Link:        &feeds.Link{Href: link},
+		Description: item.Text,
+		Content:     result,
+		Created:     created,
+	}
+
+	if item.Image != "" {
+		newItem.Enclosure = &feeds.Enclosure{Url: item.Image, Type: "image/jpeg", Length: "1"}
+	}
+
+	feedItems[item.Id] = newItem
+
+	<-jobs
 }

@@ -8,7 +8,7 @@
 контент в удобном, читабельном виде.
 
 Проект развернут на [heroku](https://heroku.com) и доступен по ссылке
-https://serene-caverns-23403.herokuapp.com/
+https://frozen-fjord-84750.herokuapp.com/
 
 Также есть возможность самому запустить проект на бесплатном хостинге heroku. Пример описан ниже.
 

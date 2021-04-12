@@ -206,3 +206,8 @@ iframe {
     position: relative;
     top: 1px;
 }
+
+.rss-link {
+    display: inline-block;
+    padding-bottom: 10px;
+}

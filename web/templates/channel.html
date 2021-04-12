@@ -1,6 +1,15 @@
 {{ template "header" . }}
-<main>
-    <article>
+
+
+<div>
+    <a href="/rss?url={{.ChannelUrl}}" class="rss-link">
+        rss
+    </a>
+</div>
+
+<article>
+
+    <main>
 
         {{range .Items}}
         <section>
@@ -10,7 +19,8 @@
         </section>
 
         {{end}}
-    </article>
+    </main>
+</article>
 
 </main>
 {{ template "footer" . }}
