@@ -1,13 +1,17 @@
 package main
 
 import (
+	_ "github.com/heroku/x/hmetrics/onload"
+	"github.com/pokatovski/blog-parser/internal/handler"
+	"github.com/pokatovski/blog-parser/internal/service"
 	"log"
 	"net/http"
 	"os"
-
-	_ "github.com/heroku/x/hmetrics/onload"
-	"github.com/pokatovski/blog-parser/internal/handler"
 )
+
+type Server struct {
+	httpServer *http.Server
+}
 
 func main() {
 
@@ -17,12 +21,21 @@ func main() {
 		log.Println("$PORT is empty, set default to :8080")
 		port = "8080"
 	}
-	fs := http.FileServer(http.Dir("./web/static"))
-	http.Handle("/web/static/", http.StripPrefix("/web/static/", fs))
-	http.HandleFunc("/", handler.Index)
-	http.HandleFunc("/parse", handler.Parse)
-	http.HandleFunc("/rss", handler.Rss)
-	http.HandleFunc("/rss-single", handler.RssSingle)
+	services := service.NewService()
+	handlers := handler.NewHandler(services)
 
-	http.ListenAndServe(":"+port, nil)
+	srv := new(Server)
+	err := srv.Run(port, handlers.InitRoutes())
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func (s *Server) Run(port string, handler http.Handler) error {
+	s.httpServer = &http.Server{
+		Addr:    ":" + port,
+		Handler: handler,
+	}
+
+	return s.httpServer.ListenAndServe()
 }

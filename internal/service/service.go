@@ -4,9 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/gorilla/feeds"
-	"github.com/pokatovski/blog-parser/internal/model"
-	"github.com/recoilme/clean"
 	"html"
 	"io/ioutil"
 	"net/http"
@@ -14,6 +11,11 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/gorilla/feeds"
+	"github.com/patrickmn/go-cache"
+	"github.com/pokatovski/blog-parser/internal/model"
+	"github.com/recoilme/clean"
 )
 
 const zenApi = "https://zen.yandex.ru/api/v3/launcher/"
@@ -22,6 +24,16 @@ const articleOffset = 20
 const maxGoroutines = 3
 
 var feedItems = make(map[string]*feeds.Item)
+
+type Service struct {
+	Cache *cache.Cache
+}
+
+func NewService() *Service {
+	return &Service{
+		Cache: cache.New(1*time.Hour, 20*time.Minute),
+	}
+}
 
 func ProcessChannel(ch string, isNamed bool) (model.ChannelData, error) {
 	var url string
@@ -123,9 +135,16 @@ func loadMore(url string) (model.Channel, error) {
 	return channel, nil
 }
 
-func MakeRss(data model.ChannelData, chUrl, host string) (string, error) {
+func (s *Service) MakeRss(data model.ChannelData, chUrl, host string) (string, error) {
 	start := time.Now()
 	created := time.Now()
+
+	fmt.Println("ch", chUrl)
+	cachedRss, found := s.Cache.Get(chUrl)
+	if found {
+		fmt.Println("return rss from cache")
+		return cachedRss.(string), nil
+	}
 	var sortedFeed []*feeds.Item
 	feedLink := fmt.Sprintf("https://%s/parse?url=%s", host, chUrl)
 	title := data.Items[0].DomainTitle
@@ -157,8 +176,8 @@ func MakeRss(data model.ChannelData, chUrl, host string) (string, error) {
 	}
 
 	feed.Items = sortedFeed
-
 	rss, err := feed.ToRss()
+	s.Cache.Set(chUrl, rss, cache.NoExpiration)
 	if err != nil {
 		return "", nil
 	}

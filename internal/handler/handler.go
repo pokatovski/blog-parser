@@ -10,14 +10,40 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/pokatovski/blog-parser/internal/model"
 	"github.com/pokatovski/blog-parser/internal/service"
 	"github.com/recoilme/clean"
 )
 
+type Handler struct {
+	services *service.Service
+}
+
+func NewHandler(services *service.Service) *Handler {
+	return &Handler{
+		services: services,
+	}
+}
+
+func (h Handler) InitRoutes() *chi.Mux {
+	r := chi.NewRouter()
+	r.Route("/", func(r chi.Router) {
+		r.Get("/", h.index)
+		r.Get("/parse", h.parse)
+		r.Get("/rss", h.rss)
+		r.Get("/rss-single", h.rssSingle)
+	})
+	fs := http.FileServer(http.Dir("./web/static"))
+	//http.Handle("/web/static/", http.StripPrefix("/web/static/", fs))
+	r.Handle("/web/static/*", http.StripPrefix("/web/static/", fs))
+
+	return r
+}
+
 var templates = template.Must(template.ParseGlob("web/templates/*"))
 
-func Index(w http.ResponseWriter, r *http.Request) {
+func (h Handler) index(w http.ResponseWriter, r *http.Request) {
 	err := templates.ExecuteTemplate(w, "index.html", nil)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -25,7 +51,7 @@ func Index(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func Parse(w http.ResponseWriter, r *http.Request) {
+func (h Handler) parse(w http.ResponseWriter, r *http.Request) {
 	url := r.URL.Query().Get("url")
 	url = html.EscapeString(url)
 	if url == "" {
@@ -66,7 +92,7 @@ func Parse(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func Rss(w http.ResponseWriter, r *http.Request) {
+func (h Handler) rss(w http.ResponseWriter, r *http.Request) {
 	url := r.URL.Query().Get("url")
 	url = html.EscapeString(url)
 	if url == "" {
@@ -88,7 +114,7 @@ func Rss(w http.ResponseWriter, r *http.Request) {
 	}
 	duration := time.Since(now).Seconds()
 	fmt.Println("process channel duration", duration)
-	rss, err := service.MakeRss(chData, url, r.Host)
+	rss, err := h.services.MakeRss(chData, url, r.Host)
 	fmt.Println("end make rss")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -100,7 +126,7 @@ func Rss(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func RssSingle(w http.ResponseWriter, r *http.Request) {
+func (h Handler) rssSingle(w http.ResponseWriter, r *http.Request) {
 	xml, err := ioutil.ReadFile("rss.xml")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
